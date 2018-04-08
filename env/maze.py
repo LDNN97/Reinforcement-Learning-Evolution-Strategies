@@ -1,6 +1,5 @@
 import numpy as np
 import time
-import sys
 import tkinter as tk
 
 UNIT = 40
@@ -10,7 +9,7 @@ MAZE_W = 4
 
 class Maze(tk.Tk, object):
     def __init__(self):
-        super(Maze,self).__init__()
+        super(Maze, self).__init__()
         self.action_space = ['u', 'r', 'd', 'l']
         self.n_actions = len(self.action_space)
         self.title('maze')
