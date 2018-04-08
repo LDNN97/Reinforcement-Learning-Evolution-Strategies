@@ -1,16 +1,31 @@
 from env.maze import Maze
-from ml.qlearnging import QlearningTable
+from ml.qlands import QLearningTable, SarsaTable
 
 
 def main():
-    rl = QlearningTable(actions=list(range(env.n_actions)))
+    # off policy
+    # rl = QLearningTable(actions=list(range(env.n_actions)))
+    # for episode in range(100):
+    #     observation = env.reset()
+    #     while True:
+    #         action = rl.choose_action(str(observation))
+    #         observation_, reward, done = env.step(action)
+    #         rl.learn(str(observation), action, reward, str(observation_))
+    #         observation = observation_
+    #         if done:
+    #             break
+
+    # on policy
+    rl = SarsaTable(actions=list(range(env.n_actions)))
     for episode in range(100):
         observation = env.reset()
+        action = rl.choose_action(str(observation))
         while True:
-            action = rl.choose_action(str(observation))
             observation_, reward, done = env.step(action)
-            rl.learn(str(observation), action, reward, str(observation_))
+            action_ = rl.choose_action(str(observation_))
+            rl.learn(str(observation), action, reward, str(observation_), action_)
             observation = observation_
+            action = action_
             if done:
                 break
 
