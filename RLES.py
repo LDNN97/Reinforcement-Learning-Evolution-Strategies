@@ -16,8 +16,10 @@ CONFIG = [
     dict(game="MountainCar-v0",
          n_feature=2, n_action=3, continuous_a=[False], ep_max_step=200, eval_threshold=-120),
     dict(game="Pendulum-v0",
-         n_feature=3, n_action=1, continuous_a=[True, 2.], ep_max_step=200, eval_threshold=-180)
-][1]  # choose a game
+         n_feature=3, n_action=1, continuous_a=[True, 2.], ep_max_step=200, eval_threshold=-180),
+    dict(game="MsPacman-ram-v0",
+         n_feature=128, n_action=9, continuous_a=[False], ep_max_step=1000, eval_threshold=100)
+][3]  # choose a game
 
 
 def sign(k_id):
@@ -29,9 +31,9 @@ def build_net():
         w = np.random.randn(n_in * n_out).astype(np.float32) * 0.1  # why multiply 0.1, map to 0 - 1?
         b = np.random.randn(n_out).astype(np.float32) * 0.1
         return (n_in, n_out), np.concatenate((w, b))
-    s0, p0 = linear(CONFIG['n_feature'], 30)
-    s1, p1 = linear(30, 20)
-    s2, p2 = linear(20, CONFIG['n_action'])
+    s0, p0 = linear(CONFIG['n_feature'], 200)
+    s1, p1 = linear(200, 200)
+    s2, p2 = linear(200, CONFIG['n_action'])
     return [s0, s1, s2], np.concatenate((p0, p1, p2))
 
 
@@ -144,6 +146,7 @@ def main():
         s = env.reset()
         for _ in range(CONFIG['ep_max_step']):
             env.render()
+            time.sleep(0.05)
             a = get_action(p, s, CONFIG['continuous_a'])
             s, _, done, _ = env.step(a)
             if done:
