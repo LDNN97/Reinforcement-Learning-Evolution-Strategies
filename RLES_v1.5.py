@@ -5,12 +5,9 @@ import numpy as np
 import multiprocessing as mp
 
 GameName = ['CartPole-v0', 'MountainCar-v0', 'MsPacman-ram-v0']
-
 SIGMA = 0.05
 POPSIZE = 20
-MAXGEN = 5000
-
-np.random.seed(0)
+MAXGEN = 500
 
 
 class Env(object):
@@ -34,7 +31,12 @@ class Env(object):
                     break
 
     @staticmethod
-    def evaluate(env, nn):
+    def evaluate(env, nn, n_id=None, seed=None):
+        nnn = copy.deepcopy(nn)
+        if seed is not None:
+            np.random.seed(seed)
+            noise = ES.mirror(n_id) * SIGMA * np.random.randn(len(nn.layer))
+            nnn.modify_params(noise)
         s = env.f.reset()
         reward = 0
         for step in range(env.max_step):
@@ -114,11 +116,8 @@ class ES(object):
         workers, reward = [], []
         pool = mp.Pool(processes=mp.cpu_count())
         for i in range(self.popsize):
-            np.random.seed(self.population[i])
-            nnn = copy.deepcopy(nn)
-            noise = self.mirror(i) * SIGMA * np.random.randn(len(nn.layer))
-            nnn.modify_params(noise)
-            workers.append(pool.apply_async(Env.evaluate, (env, nnn)))
+            workers.append(pool.apply_async(Env.evaluate, (env, nn, i, self.population[i])))
+        pool.close(), pool.join()
         reward = [w.get() for w in workers]
         rank = np.argsort(reward)[::-1]
 
@@ -133,6 +132,7 @@ class ES(object):
 
 
 def learning():
+    st = time.time()
     env = Env(GameName[1], 500)
     net = NeuralNetwork(env.n_in, 30, env.n_out)
     es = ES(POPSIZE)
@@ -150,8 +150,10 @@ def learning():
               ' net_cr: %.3f' % net_cr,
               ' t: %.3f' % (te - ts))
 
-    net.save()
-    env.show(net, 0.01)
+    et = time.time()
+    print('time: %.3f' % (et - st))
+    # net.save()
+    # env.show(net, 0.01)
 
 
 if __name__ == "__main__":
