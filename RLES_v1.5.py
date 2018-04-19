@@ -2,7 +2,7 @@ import gym
 import copy
 import time
 import numpy as np
-# import multiprocessing as mp
+import multiprocessing as mp
 
 GameName = ['CartPole-v0', 'MountainCar-v0', 'MsPacman-ram-v0']
 
@@ -22,20 +22,6 @@ class Env(object):
 
         self.max_step = max_step
 
-    def evaluate(self, nn):
-        s = self.f.reset()
-        reward = 0
-        for step in range(self.max_step):
-            a = nn.get_action(s)
-            s, r, done, _ = self.f.step(a)
-            # modify the reward of MountainCar
-            if self.name == 'MountainCar-v0' and s[0] > -0.1:
-                r = 0
-            reward += r
-            if done:
-                break
-        return reward
-
     def show(self, nn, interval):
         while True:
             s = self.f.reset()
@@ -46,6 +32,21 @@ class Env(object):
                 s, _, done, _ = self.f.step(a)
                 if done:
                     break
+
+    @staticmethod
+    def evaluate(env, nn):
+        s = env.f.reset()
+        reward = 0
+        for step in range(env.max_step):
+            a = nn.get_action(s)
+            s, r, done, _ = env.f.step(a)
+            # modify the reward of MountainCar
+            if env.name == 'MountainCar-v0' and s[0] > -0.1:
+                r = 0
+            reward += r
+            if done:
+                break
+        return reward
 
 
 class NeuralNetwork(object):
@@ -110,13 +111,15 @@ class ES(object):
         self.w = temp / temp.sum() - 1 / self.popsize
 
     def evolution(self, nn, env):
-        reward = []
+        workers, reward = [], []
+        pool = mp.Pool(processes=mp.cpu_count())
         for i in range(self.popsize):
             np.random.seed(self.population[i])
             nnn = copy.deepcopy(nn)
             noise = self.mirror(i) * SIGMA * np.random.randn(len(nn.layer))
             nnn.modify_params(noise)
-            reward.append(env.evaluate(nnn))
+            workers.append(pool.apply_async(Env.evaluate, (env, nnn)))
+        reward = [w.get() for w in workers]
         rank = np.argsort(reward)[::-1]
 
         update = np.zeros(len(nn.layer))
@@ -138,7 +141,7 @@ def learning():
     for gen in range(MAXGEN):
         ts = time.time()
         kids_ar = es.evolution(net, env)
-        net_r = env.evaluate(net)
+        net_r = Env.evaluate(env, net)
         net_cr = net_r if net_cr is None else 0.9 * net_cr + 0.1 * net_r
         te = time.time()
         print('Gen: ', gen,
