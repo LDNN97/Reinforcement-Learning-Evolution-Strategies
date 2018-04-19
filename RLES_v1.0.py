@@ -4,17 +4,17 @@ import numpy as np
 import multiprocessing as mp
 
 N_KID = 10
-N_GENERATION = 5000
+N_GENERATION = 500
 LR = 0.05
 SIGMA = 0.05
-N_CORE = mp.cpu_count() - 1  # number of processing
+N_CORE = mp.cpu_count()  # number of processing
 
 CONFIG = [
     # n_feature, n_action means observations and actions in gym, eval_threshold
     dict(game="CartPole-v0",
          n_feature=4, n_action=2, continuous_a=[False], ep_max_step=700, eval_threshold=500),
     dict(game="MountainCar-v0",
-         n_feature=2, n_action=3, continuous_a=[False], ep_max_step=200, eval_threshold=-120),
+         n_feature=2, n_action=3, continuous_a=[False], ep_max_step=500, eval_threshold=-120),
     dict(game="Pendulum-v0",
          n_feature=3, n_action=1, continuous_a=[True, 2.], ep_max_step=200, eval_threshold=-180),
     dict(game="MsPacman-ram-v0",
@@ -28,8 +28,8 @@ def sign(k_id):
 
 def build_net():
     def linear(n_in, n_out):
-        w = np.random.randn(n_in * n_out).astype(np.float32) * 0.1  # why multiply 0.1, map to 0 - 1?
-        b = np.random.randn(n_out).astype(np.float32) * 0.1
+        w = np.random.randn(n_in * n_out).astype(np.float32) * SIGMA  # why multiply 0.1, map to 0 - 1?
+        b = np.random.randn(n_out).astype(np.float32) * SIGMA
         return (n_in, n_out), np.concatenate((w, b))
     s0, p0 = linear(CONFIG['n_feature'], 30)
     s1, p1 = linear(30, 30)
@@ -133,7 +133,8 @@ def main():
         mar = net_r if mar is None else 0.9 * mar + 0.1 * net_r
         print(
             'Gen: ', g,
-            '| Net_R: %.1f' % mar,
+            '| Net_R: %.1f' % net_r,
+            '| Net_CR: %.1f' % mar,
             '| Kid_avg_R: %.1f' % kid_rewards.mean(),
             '| Gen_T: %.2f' % (time.time() - t0), )
         if mar >= CONFIG['eval_threshold']:
