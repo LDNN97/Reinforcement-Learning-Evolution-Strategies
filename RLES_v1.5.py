@@ -11,13 +11,14 @@ MAXGEN = 500
 
 
 class Env(object):
-    def __init__(self, name, max_step):
+    def __init__(self, name, max_step, max_reward):
         self.name = name
         self.f = gym.make(name).unwrapped
         self.n_in = self.f.observation_space.shape[0]
         self.n_out = self.f.action_space.n
 
         self.max_step = max_step
+        self.max_reward = max_reward
 
     def show(self, nn, interval):
         while True:
@@ -40,7 +41,7 @@ class Env(object):
         s = env.f.reset()
         reward = 0
         for step in range(env.max_step):
-            a = nn.get_action(s)
+            a = nnn.get_action(s)
             s, r, done, _ = env.f.step(a)
             # modify the reward of MountainCar
             if env.name == 'MountainCar-v0' and s[0] > -0.1:
@@ -132,8 +133,7 @@ class ES(object):
 
 
 def learning():
-    st = time.time()
-    env = Env(GameName[1], 500)
+    env = Env(GameName[1], 500, -120)
     net = NeuralNetwork(env.n_in, 30, env.n_out)
     es = ES(POPSIZE)
 
@@ -149,11 +149,11 @@ def learning():
               ' kids_ar: %.3f' % kids_ar,
               ' net_cr: %.3f' % net_cr,
               ' t: %.3f' % (te - ts))
+        if net_r > env.max_reward:
+            break
 
-    et = time.time()
-    print('time: %.3f' % (et - st))
-    # net.save()
-    # env.show(net, 0.01)
+    net.save()
+    env.show(net, 0.01)
 
 
 if __name__ == "__main__":
